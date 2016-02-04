@@ -15,7 +15,7 @@ In Transfer Settings, check "Limit number of simultaneous connections" and set t
 
 It does NOT support any encryption, so you'll have to disable any form of encryption...
 
-feel free to try it out (sample provided)....unzip into your arduino library direction (and restart arduino ide).
+feel free to try it out (sample provided)....unzip into your arduino library directory (and restart arduino ide).
 
 
 this is the original project on github I worked from: https://github.com/gallegojm/Arduino-Ftp-Server/tree/master/FtpServer
