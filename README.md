@@ -13,6 +13,8 @@ To force FileZilla to use the primary connection for data transfers:
 Go to File/Site Manager then select your site.
 In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1
 
+only supports Passive ftp mode....
+
 It does NOT support any encryption, so you'll have to disable any form of encryption...
 
 feel free to try it out (sample provided)....unzip into your arduino library directory (and restart arduino ide).
