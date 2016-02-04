@@ -13,7 +13,9 @@ To force FileZilla to use the primary connection for data transfers:
 Go to File/Site Manager then select your site.
 In Transfer Settings, check "Limit number of simultaneous connections" and set the maximum to 1
 
+It does NOT support any encryption, so you'll have to disable any form of encryption...
 
-feel free to try it out (sample provided)....
+feel free to try it out (sample provided)....unzip into your arduino library direction (and restart arduino ide).
+
 
 this is the original project on github I worked from: https://github.com/gallegojm/Arduino-Ftp-Server/tree/master/FtpServer
