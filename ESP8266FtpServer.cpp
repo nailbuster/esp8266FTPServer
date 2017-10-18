@@ -19,10 +19,15 @@
  */
 
 #include "ESP8266FtpServer.h"
-
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
+#elif defined ESP32
+#include <WiFi.h>
+#include <Webserver.h>
+#include "SPIFFS.h"
+#endif
+#include <WiFiClient.h>
 #include <FS.h>
 
 
@@ -378,6 +383,7 @@ boolean FtpServer::processCommand()
     {
       client.println( "150 Accepted data connection");
       uint16_t nm = 0;
+#ifdef ESP8266
       Dir dir=SPIFFS.openDir(cwdName);
       if( !SPIFFS.exists(cwdName))
         client.println( "550 Can't open directory " + String(cwdName) );
@@ -395,6 +401,40 @@ boolean FtpServer::processCommand()
         }
         client.println( "226 " + String(nm) + " matches total");
       }
+#elif defined ESP32
+			File root = SPIFFS.open(cwdName);
+			if(!root){
+					client.println( "550 Can't open directory " + String(cwdName) );
+					// return;
+			} else {
+				// if(!root.isDirectory()){
+				// 		Serial.println("Not a directory");
+				// 		return;
+				// }
+
+				File file = root.openNextFile();
+				while(file){
+					if(file.isDirectory()){
+						data.println( "+r,s <DIR> " + String(file.name()));
+						// Serial.print("  DIR : ");
+						// Serial.println(file.name());
+						// if(levels){
+						// 	listDir(fs, file.name(), levels -1);
+						// }
+					} else {
+						String fn, fs;
+						fn = file.name();
+						// fn.remove(0, 1);
+						fs = String(file.size());
+						data.println( "+r,s" + fs);
+						data.println( ",\t" + fn );
+						nm ++;
+					}
+					file = root.openNextFile();
+				}
+				client.println( "226 " + String(nm) + " matches total");
+			}
+#endif
       data.stop();
     }
   }
@@ -409,6 +449,7 @@ boolean FtpServer::processCommand()
     {
 	  client.println( "150 Accepted data connection");
       uint16_t nm = 0;
+#ifdef ESP8266
       Dir dir= SPIFFS.openDir(cwdName);
       char dtStr[ 15 ];
     //  if(!SPIFFS.exists(cwdName))
@@ -427,6 +468,40 @@ boolean FtpServer::processCommand()
         client.println( "226-options: -a -l");
         client.println( "226 " + String(nm) + " matches total");
       }
+#elif defined ESP32
+			File root = SPIFFS.open(cwdName);
+			// if(!root){
+			// 		client.println( "550 Can't open directory " + String(cwdName) );
+			// 		// return;
+			// } else {
+				// if(!root.isDirectory()){
+				// 		Serial.println("Not a directory");
+				// 		return;
+				// }
+
+				File file = root.openNextFile();
+				while(file){
+					// if(file.isDirectory()){
+					// 	data.println( "+r,s <DIR> " + String(file.name()));
+					// 	// Serial.print("  DIR : ");
+					// 	// Serial.println(file.name());
+					// 	// if(levels){
+					// 	// 	listDir(fs, file.name(), levels -1);
+					// 	// }
+					// } else {
+						String fn, fs;
+						fn = file.name();
+						fn.remove(0, 1);
+						fs = String(file.size());
+						data.println( "Type=file;Size=" + fs + ";"+"modify=20000101160656;" +" " + fn);
+						nm ++;
+					// }
+					file = root.openNextFile();
+				}
+				client.println( "226-options: -a -l");
+				client.println( "226 " + String(nm) + " matches total");
+			// }
+#endif
       data.stop();
     }
   }
@@ -441,6 +516,7 @@ boolean FtpServer::processCommand()
     {
       client.println( "150 Accepted data connection");
       uint16_t nm = 0;
+#ifdef ESP8266
       Dir dir=SPIFFS.openDir(cwdName);
       if( !SPIFFS.exists( cwdName ))
         client.println( "550 Can't open directory " + String(parameters));
@@ -453,6 +529,21 @@ boolean FtpServer::processCommand()
         }
         client.println( "226 " + String(nm) + " matches total");
       }
+#elif defined ESP32
+		File root = SPIFFS.open(cwdName);
+		if(!root){
+				client.println( "550 Can't open directory " + String(cwdName) );
+		} else {
+
+			File file = root.openNextFile();
+			while(file){
+				data.println( file.name());
+					nm ++;
+				file = root.openNextFile();
+			}
+			client.println( "226 " + String(nm) + " matches total");
+		}
+#endif
       data.stop();
     }
   }
@@ -693,7 +784,13 @@ boolean FtpServer::doStore()
 {
   if( data.connected() )
   {
-    int16_t nb = data.readBytes((uint8_t*) buf, FTP_BUF_SIZE );
+		// Avoid blocking by never reading more bytes than are available
+    int navail = data.available();
+    if (navail <= 0) return true;
+    // And be sure not to overflow buf.
+    if (navail > FTP_BUF_SIZE) navail = FTP_BUF_SIZE;
+    int16_t nb = data.read((uint8_t*) buf, navail );
+    // int16_t nb = data.readBytes((uint8_t*) buf, FTP_BUF_SIZE );
     if( nb > 0 )
     {
       // Serial.println( millis() << " " << nb << endl;
