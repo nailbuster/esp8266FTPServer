@@ -1,35 +1,18 @@
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
+#elif defined ESP32
+#include <WiFi.h>
+#include "SPIFFS.h"
+#endif
+
 #include <ESP8266FtpServer.h>
 
 const char* ssid = "YOUR_SSID";
 const char* password = "YOUR_PASS";
 
-ESP8266WebServer server(80);
+
 FtpServer ftpSrv;   //set #define FTP_DEBUG in ESP8266FtpServer.h to see ftp verbose on serial
 
-
-
-void handleRoot() {
-  server.send(200, "text/plain", "hello from esp8266!");
-
-}
-
-void handleNotFound(){
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i=0; i<server.args(); i++){
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
-}
 
 void setup(void){
   Serial.begin(115200);
@@ -48,23 +31,20 @@ void setup(void){
   Serial.println(WiFi.localIP());
 
 
-  server.on("/", handleRoot);
-
-  server.onNotFound(handleNotFound);
-
-  server.begin();
-  Serial.println("HTTP server started");
-
   /////FTP Setup, ensure SPIFFS is started before ftp;  /////////
   
+  /////FTP Setup, ensure SPIFFS is started before ftp;  /////////
+#ifdef ESP32       //esp32 we send true to format spiffs if cannot mount
+  if (SPIFFS.begin(true)) {
+#elif defined ESP8266
   if (SPIFFS.begin()) {
+#endif
       Serial.println("SPIFFS opened!");
       ftpSrv.begin("esp8266","esp8266");    //username, password for ftp.  set ports in ESP8266FtpServer.h  (default 21, 50009 for PASV)
   }    
 }
-
 void loop(void){
   ftpSrv.handleFTP();        //make sure in loop you call handleFTP()!!  
-  server.handleClient();
+ // server.handleClient();   //example if running a webserver you still need to call .handleClient();
  
 }

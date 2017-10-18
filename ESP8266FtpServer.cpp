@@ -21,10 +21,8 @@
 #include "ESP8266FtpServer.h"
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
 #elif defined ESP32
 #include <WiFi.h>
-#include <Webserver.h>
 #include "SPIFFS.h"
 #endif
 #include <WiFiClient.h>
@@ -155,7 +153,7 @@ void FtpServer::clientConnected()
   #ifdef FTP_DEBUG
 	Serial.println("Client connected!");
   #endif
-  client.println( "220--- Welcome to FTP for ESP8266 ---");
+  client.println( "220--- Welcome to FTP for ESP8266/ESP32 ---");
   client.println( "220---   By David Paiva   ---");
   client.println( "220 --   Version "+ String(FTP_SERVER_VERSION) +"   --");
   iCL = 0;
@@ -274,7 +272,7 @@ boolean FtpServer::processCommand()
     if (data.connected()) data.stop();
     //dataServer.begin();
      //dataIp = Ethernet.localIP();    
-	dataIp = WiFi.localIP();	
+	dataIp = client.localIP();	
 	dataPort = FTP_DATA_PORT_PASV;
     //data.connect( dataIp, dataPort );
     //data = dataServer.available();
@@ -385,9 +383,9 @@ boolean FtpServer::processCommand()
       uint16_t nm = 0;
 #ifdef ESP8266
       Dir dir=SPIFFS.openDir(cwdName);
-      if( !SPIFFS.exists(cwdName))
-        client.println( "550 Can't open directory " + String(cwdName) );
-      else
+     // if( !SPIFFS.exists(cwdName))
+     //   client.println( "550 Can't open directory " + String(cwdName) );
+     // else
       {
         while( dir.next())
         {
@@ -518,9 +516,9 @@ boolean FtpServer::processCommand()
       uint16_t nm = 0;
 #ifdef ESP8266
       Dir dir=SPIFFS.openDir(cwdName);
-      if( !SPIFFS.exists( cwdName ))
-        client.println( "550 Can't open directory " + String(parameters));
-      else
+     // if( !SPIFFS.exists( cwdName ))
+     //   client.println( "550 Can't open directory " + String(parameters));
+     // else
       {
         while( dir.next())
         {
@@ -768,16 +766,18 @@ boolean FtpServer::dataConnect()
 
 boolean FtpServer::doRetrieve()
 {
-	//int16_t nb = file.readBytes((uint8_t*) buf, FTP_BUF_SIZE );
+if (data.connected())
+{
 	int16_t nb = file.readBytes(buf, FTP_BUF_SIZE);
-  if( nb > 0 )
-  { 
-    data.write((uint8_t*) buf, nb );
-    bytesTransfered += nb;
-    return true;
-  }
-  closeTransfer();
-  return false;
+	if (nb > 0)
+  	{
+		data.write((uint8_t*)buf, nb);
+		bytesTransfered += nb;
+		return true;
+	}
+}
+closeTransfer();
+return false;
 }
 
 boolean FtpServer::doStore()
